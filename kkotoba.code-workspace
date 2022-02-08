@@ -5,6 +5,9 @@
     },
     {
       "path": "packages/scripts"
+    },
+    {
+      "path": "packages/server"
     }
   ],
   "settings": {
