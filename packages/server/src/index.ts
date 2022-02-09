@@ -121,7 +121,7 @@ async function main() {
           }[]
         }[] = await DictElementModel.aggregate([
           { $match: { $and } },
-          { $group: { _id: 'dict' } },
+          { $group: { _id: '$dict' } },
           {
             $lookup: {
               localField: '_id',

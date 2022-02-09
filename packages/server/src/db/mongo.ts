@@ -8,18 +8,12 @@ import {
 } from '@typegoose/typegoose'
 import S from 'jsonschema-definer'
 
-const sDictMeaning = S.shape({
-  pos: S.string().optional(),
-  xref: S.list(S.string()).minItems(1).optional(),
-  gloss: S.list(S.string())
-})
-
-export type IDictMeaning = typeof sDictMeaning.type
+import { IDictMeaning, sDictMeaning } from './types'
 
 @modelOptions({ options: { allowMixed: Severity.ALLOW } })
 class Dict {
   @prop() _id!: string
-  @prop() frequency?: number
+  @prop({ index: true }) frequency?: number
   @prop({
     default: [],
     validate: (v: any) => S.list(sDictMeaning).validate(v)[0]
