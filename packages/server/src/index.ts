@@ -35,9 +35,10 @@ async function main() {
   {
     const sQuery = S.shape({
       length: S.integer().minimum(1),
-      tag: S.string(),
-      exclude: S.string(),
-      within: S.string(),
+      tag: S.string().optional(),
+      exclude: S.string().optional(),
+      within: S.string().optional(),
+      pattern: S.string().optional(),
       repeat: S.string().enum('on').optional(),
       small: S.string().enum('on').optional(),
       format: S.string().enum('txt', 'json'),
@@ -81,6 +82,7 @@ async function main() {
           tag,
           exclude,
           within,
+          pattern = '',
           repeat,
           small,
           format,
@@ -89,12 +91,25 @@ async function main() {
 
         let { limit = 100 } = req.query
 
-        const tagSet = new Set(tag.split(' '))
+        const $and: any[] = []
 
-        const $and: any[] = [{ length }]
+        const rePattern = pattern.trim()
+          ? Array.from(
+              pattern.matchAll(/[\p{sc=Katakana}\p{sc=Hiragana}ー?？]/gu)
+            )
+              .join('')
+              .replace(/[?？]/g, '.')
+          : ''
 
+        if (!rePattern) {
+          $and.push({ length })
+        }
+
+        const tagSet = new Set(tag ? tag.split(' ') : [])
+        let isCommon = false
         if (tagSet.has('common')) {
           tagSet.delete('common')
+          isCommon = true
           $and.push({ primary: true })
         }
 
@@ -130,11 +145,18 @@ async function main() {
           $and.push({ repeat: repeat ? { $gt: 0 } : 0 })
         }
 
+        if (rePattern) {
+          $and.push({ value: { $regex: new RegExp('^' + rePattern + '$') } })
+        }
+
         const entries = Dict.chain()
           .find({
             _id: {
               $in: [...new Set(DictElement.find({ $and }).map((r) => r.dict))]
-            }
+            },
+            ...(tagSet.size
+              ? { tag: { $containsAny: Array.from(tagSet) } }
+              : {})
           })
           .simplesort('frequency', { desc: true })
           .data()
@@ -166,9 +188,10 @@ async function main() {
           data: entries
             .slice(offset, limit > 0 ? offset + limit : undefined)
             .map((r) => ({
-              ja: DictElement.find({ dict: r._id, primary: true }).map(
-                (el) => el.value
-              ),
+              ja: DictElement.find({
+                dict: r._id,
+                ...(isCommon ? { primary: true } : {})
+              }).map((el) => el.value),
               en: r.meaning
             }))
         }
@@ -179,7 +202,10 @@ async function main() {
 
         return out.data
           .map(
-            (d) => `${d.ja.join(' ')} - ${d.en.map((m) => m.gloss).join(' / ')}`
+            (d) =>
+              `${d.ja.join(' ')} - ${d.en
+                .map((m) => m.gloss.join(', '))
+                .join(' / ')}`
           )
           .join('\n')
       }

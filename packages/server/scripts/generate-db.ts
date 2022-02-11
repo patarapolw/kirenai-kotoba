@@ -1,36 +1,42 @@
+import { execSync } from 'child_process'
 import fs from 'fs'
 
-import { DictElementModel, DictModel, mongooseConnect } from '@/db/mongo'
-import { IDictMeaning } from '@/db/types'
+import { Dict, DictElement, db, initDB } from '@/db/loki'
+import {
+  IDict,
+  IDictElement,
+  IDictMeaning,
+  reJa,
+  simplifySmall
+} from '@/db/types'
 import axios from 'axios'
 import cheerio from 'cheerio'
+import { toHiragana } from 'wanakana'
 import flow, { toXml } from 'xml-flow'
 
-interface IEntryValue {
-  value: string
-  isKanji?: boolean
-  length?: number
-  primary?: boolean
-}
+const jmdictXml = 'cache/JMdict_e.xml'
 
-async function main() {
-  const xmlFlow = flow(fs.createReadStream('../scripts/cache/JMdict_e.xml'))
+export async function init() {
+  if (!fs.existsSync(jmdictXml)) {
+    execSync(
+      `curl ftp://ftp.edrdg.org/pub/Nihongo//JMdict_e.gz | gunzip > ${jmdictXml}`
+    )
+  }
+
+  const xmlFlow = flow(fs.createReadStream(jmdictXml))
 
   const batchSize = 1000
-  const entries: {
-    _id: string
+  const entries: (IDict & {
     slug: string
-    values: IEntryValue[]
-    frequency?: number
-    meaning: IDictMeaning[]
-  }[] = []
+    values: IDictElement[]
+  })[] = []
 
   xmlFlow.on('tag:entry', (ent) => {
     const xml = toXml(ent)
     const $ = cheerio.load(xml)
 
     const _id = $('ent_seq').text()
-    const values: IEntryValue[] = []
+    const values: IDictElement[] = []
 
     $('k_ele').each((_, k_ele) => {
       const $k_ele = $(k_ele)
@@ -45,9 +51,18 @@ async function main() {
         if (!value || /[a-z]/i.test(value)) return
       }
 
-      const v: IEntryValue = {
+      const allChar = Array.from(toHiragana(value).matchAll(reJa)).map(
+        (m) => m[0]!
+      )
+      const char = [...new Set(allChar)]
+      const allCharX = simplifySmall(allChar)
+
+      const v: IDictElement = {
+        dict: _id,
         value,
-        isKanji: true
+        char,
+        repeat: allChar.length - char.length,
+        repeatx: allCharX.length - new Set(allCharX).size
       }
 
       if (primary) {
@@ -69,8 +84,18 @@ async function main() {
         if (!value || /[a-z]/i.test(value)) return
       }
 
-      const v: IEntryValue = {
-        value
+      const allChar = Array.from(toHiragana(value).matchAll(reJa)).map(
+        (m) => m[0]!
+      )
+      const char = [...new Set(allChar)]
+      const allCharX = simplifySmall(allChar)
+
+      const v: IDictElement = {
+        dict: _id,
+        value,
+        char,
+        repeat: allChar.length - char.length,
+        repeatx: allCharX.length - new Set(allCharX).size
       }
 
       if (primary) {
@@ -112,7 +137,9 @@ async function main() {
     })
   })
 
-  const conn = await mongooseConnect()
+  await new Promise((resolve, reject) => {
+    xmlFlow.once('end', resolve).once('error', reject)
+  })
 
   for (let i = 0; i < entries.length; i += batchSize) {
     const map = new Map<string, typeof entries>()
@@ -124,7 +151,7 @@ async function main() {
 
     await axios
       .post<Record<string, number>>(
-        `https://cdn.zhquiz.cc/api/wordfreq?lang=ja`,
+        `http://localhost:18121/api/wordfreq?lang=ja`,
         {
           q: [
             ...new Set(
@@ -145,27 +172,69 @@ async function main() {
 
     const currentEntries = Array.from(map.values()).flat()
 
-    await DictModel.insertMany(
+    await initDB(undefined, '')
+
+    Dict.insert(
       currentEntries.map((it) => ({
         _id: it._id,
         frequency: it.frequency,
-        meaning: it.meaning
+        meaning: it.meaning,
+        tag: []
       }))
     )
 
-    await DictElementModel.insertMany(
-      currentEntries.flatMap((it) =>
-        it.values.map((v) => ({
-          ...v,
-          dict: it._id
-        }))
-      )
-    )
+    DictElement.insert(currentEntries.flatMap((it) => it.values))
   }
 
-  await conn.disconnect()
+  await new Promise<void>((resolve, reject) => {
+    db.save((err) => {
+      err ? reject(err) : resolve()
+    })
+  })
+}
+
+export async function modify() {
+  const xmlFlow = flow(fs.createReadStream(jmdictXml))
+
+  const posMap: Record<string, string[]> = {}
+
+  xmlFlow.on('tag:entry', (ent) => {
+    const xml = toXml(ent)
+    const $ = cheerio.load(xml)
+
+    const _id = $('ent_seq').text()
+    const pos = Array.from($('pos'))
+      .map((p) => $(p).text().replace(/[&;]/g, ''))
+      .filter((s) => s)
+
+    posMap[_id] = pos
+  })
+
+  await new Promise((resolve, reject) => {
+    xmlFlow.once('end', resolve).once('error', reject)
+  })
+
+  await initDB()
+
+  console.log(new Set(Object.values(posMap).flat()))
+
+  Dict.updateWhere(
+    (it) => !!posMap[it._id],
+    (it) => ({
+      ...it,
+      tag: [...new Set([...(it.tag || []), ...(posMap[it._id] || [])])]
+    })
+  )
+
+  Dict.ensureIndex('tag')
+
+  await new Promise<void>((resolve, reject) => {
+    db.save((err) => {
+      err ? reject(err) : resolve()
+    })
+  })
 }
 
 if (require.main === module) {
-  main()
+  modify()
 }

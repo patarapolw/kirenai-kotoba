@@ -12,7 +12,8 @@ export type IDictMeaning = typeof sDictMeaning.type
 export const sDict = S.shape({
   _id: S.string(),
   frequency: S.number().optional(),
-  meaning: S.list(sDictMeaning)
+  meaning: S.list(sDictMeaning),
+  tag: S.list(S.string()).optional()
 })
 
 export type IDict = typeof sDict.type
