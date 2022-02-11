@@ -17,15 +17,16 @@ export const sDict = S.shape({
 
 export type IDict = typeof sDict.type
 
-export const reKana = /^[\p{sc=Katakana}\p{sc=Hiragana}ー]$/gu
-export const reKanji = /^\p{sc=Han}$/gu
-export const reJa = /^[\p{sc=Han}\p{sc=Katakana}\p{sc=Hiragana}ー]$/gu
+export const reKana = /[\p{sc=Katakana}\p{sc=Hiragana}ー]/gu
+export const reJa = /[\p{sc=Han}\p{sc=Katakana}\p{sc=Hiragana}ー]/gu
 
 export const sDictElement = S.shape({
   dict: S.string(),
   value: S.string(),
   length: S.integer().optional(),
-  char: S.list(S.string().pattern(reJa)),
+  char: S.list(
+    S.string().pattern(/^[\p{sc=Han}\p{sc=Katakana}\p{sc=Hiragana}ー]$/u)
+  ),
   repeat: S.integer(),
   repeatx: S.integer(),
   primary: S.boolean().optional()

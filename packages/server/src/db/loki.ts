@@ -38,7 +38,7 @@ export async function initDB(
           const xmlFlow = flow(fs.createReadStream(jmdictXml))
 
           Dict = db.addCollection('Dict', {
-            indices: ['_id', 'frequency'],
+            indices: ['frequency'],
             unique: ['_id']
           })
 
@@ -166,6 +166,10 @@ export async function initDB(
               values,
               meaning
             })
+          })
+
+          await new Promise((resolve, reject) => {
+            xmlFlow.once('end', resolve).once('error', reject)
           })
 
           for (let i = 0; i < entries.length; i += batchSize) {

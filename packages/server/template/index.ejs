@@ -26,9 +26,23 @@
       margin-top: 1em;
     }
 
-    form label {
+    form .field {
+      margin-bottom: 0.5em;
+    }
+
+    form .field>label {
       display: inline-block;
       width: 200px;
+    }
+
+    form .checkbox {
+      display: inline-block;
+    }
+
+    form .checkbox>label {
+      min-width: 150px;
+      margin-left: 0.5em;
+      margin-right: 0.5em;
     }
   </style>
 </head>
@@ -46,17 +60,27 @@
       </div>
       <div class="field">
         <label for="within">Included characters</label>
-        <input type="text" name="within" id="within" />
+        <input type="text" name="within" id="within" lang="ja-JP" />
       </div>
       <div class="field">
         <label for="exclude">Excluded characters</label>
-        <input type="text" name="exclude" id="exclude" />
+        <input type="text" name="exclude" id="exclude" lang="ja-JP" />
+      </div>
+      <div class="field">
+        <label>Options</label>
+        <div class="checkbox">
+          <input type="checkbox" name="repeat" id="repeat">
+          <label for="repeat">Allow repeats</label>
+        </div>
+        <div class="checkbox">
+          <input type="checkbox" name="small" id="small">
+          <label for="small">Normalize small Kana</label>
+        </div>
       </div>
       <div class="field">
         <label for="format">Format</label>
         <select name="format" id="format">
-          <option value="tsv">TSV (tab-separated values)</option>
-          <option value="csv">CSV (comma-separated values)</option>
+          <option value="txt">Text</option>
           <option value="json">JSON</option>
         </select>
       </div>

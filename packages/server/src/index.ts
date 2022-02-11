@@ -5,8 +5,8 @@ import fasitfyStatic from 'fastify-static'
 import S from 'jsonschema-definer'
 import pov from 'point-of-view'
 
-import { DictElement, initDB } from './db/loki'
-import { reKana } from './db/types'
+import { Dict, DictElement, initDB } from './db/loki'
+import { expandSmall, reKana, sDictMeaning } from './db/types'
 
 async function main() {
   await initDB()
@@ -37,24 +37,30 @@ async function main() {
       tag: S.string(),
       exclude: S.string(),
       within: S.string(),
-      format: S.string().enum('tsv', 'csv', 'json'),
+      repeat: S.string().enum('on').optional(),
+      small: S.string().enum('on').optional(),
+      format: S.string().enum('txt', 'json'),
       offset: S.integer().minimum(0).optional(),
       limit: S.integer().minimum(-1).optional()
     })
 
-    const sResponse = S.anyOf(
-      S.string(),
-      S.shape({
-        meta: S.shape({
-          offset: S.integer(),
-          limit: S.integer(),
-          count: S.integer(),
-          previous: S.string().optional(),
-          next: S.string().optional()
-        }),
-        data: S.list(S.shape({}).additionalProperties(true))
-      })
-    )
+    const sJsonResponse = S.shape({
+      meta: S.shape({
+        offset: S.integer(),
+        limit: S.integer(),
+        count: S.integer(),
+        previous: S.string().optional(),
+        next: S.string().optional()
+      }),
+      data: S.list(
+        S.shape({
+          ja: S.list(S.string()),
+          en: S.list(sDictMeaning)
+        }).additionalProperties(true)
+      )
+    })
+
+    const sResponse = S.anyOf(S.string(), sJsonResponse)
 
     app.get<{
       Querystring: typeof sQuery.type
@@ -74,6 +80,8 @@ async function main() {
           tag: _tag,
           exclude,
           within,
+          repeat,
+          small,
           format,
           offset = 0,
           limit = 100
@@ -83,121 +91,75 @@ async function main() {
 
         const $and: any[] = [{ length }]
 
-        let isCommon = false
         if (tags.has('common')) {
           tags.delete('common')
           $and.push({ primary: true })
-          isCommon = true
         }
 
         if (exclude) {
+          let chars = Array.from(exclude.matchAll(reKana)).map((m) => m[0]!)
+          if (small) {
+            chars = expandSmall(chars)
+          }
+
           $and.push({
-            value: new RegExp(
-              `[^${Array.from(exclude.matchAll(reKana))
-                .map((m) => m[0])
-                .join('')}]`
-            )
+            kana: {
+              $containsNone: chars
+            }
           })
         }
 
         if (within) {
+          let chars = Array.from(within.matchAll(reKana)).map((m) => m[0]!)
+          if (small) {
+            chars = expandSmall(chars)
+          }
+
           $and.push({
-            value: new RegExp(
-              `[${Array.from(within.matchAll(reKana))
-                .map((m) => m[0])
-                .join('')}]`
-            )
+            kana: {
+              $containsAny: chars
+            }
           })
         }
 
-        DictElement.find({ kana: { $in:  }})
+        if (small) {
+          $and.push({ repeatx: repeat ? { $gt: 0 } : 0 })
+        } else {
+          $and.push({ repeat: repeat ? { $gt: 0 } : 0 })
+        }
 
-        const r: {
-          data: {
-            meaning: IDictMeaning[]
-            japanese: {
-              value: string
-            }[]
-          }[]
+        const entries = Dict.chain()
+          .find({
+            _id: {
+              $in: [...new Set(DictElement.find({ $and }).map((r) => r.dict))]
+            }
+          })
+          .simplesort('frequency', { desc: true })
+          .data()
+
+        const out: typeof sJsonResponse.type = {
+          data: entries
+            .slice(offset, limit > 0 ? offset + limit : undefined)
+            .map((r) => ({
+              ja: DictElement.find({ dict: r._id, primary: true }).map(
+                (el) => el.value
+              ),
+              en: r.meaning
+            })),
           meta: {
-            count: number
-          }[]
-        }[] = await DictElementModel.aggregate([
-          { $match: { $and } },
-          { $group: { _id: '$dict' } },
-          {
-            $lookup: {
-              localField: '_id',
-              foreignField: '_id',
-              from: 'Dict',
-              as: 'd'
-            }
-          },
-          { $sort: { 'd.frequency': -1 } },
-          {
-            $facet: {
-              data: [
-                { $skip: offset },
-                ...(limit > 0 ? [{ $limit: limit }] : []),
-                {
-                  $lookup: {
-                    from: 'DictElement',
-                    pipeline: [
-                      {
-                        $match: {
-                          ...(isCommon ? { primary: true } : {}),
-                          dict: '$_id'
-                        }
-                      },
-                      { $project: { _id: 0, value: 1 } }
-                    ],
-                    as: 'japanese'
-                  }
-                },
-                {
-                  $project: {
-                    _id: 0,
-                    meaning: { $first: '$d.meaning' },
-                    japanese: 1
-                  }
-                }
-              ],
-              meta: [{ $count: 'count' }]
-            }
+            count: entries.length,
+            offset,
+            limit: limit || -1
           }
-        ])
-
-        if (!r[0]) {
-          if (format === 'json') {
-            return {
-              meta: {
-                count: 0,
-                offset,
-                limit: limit || -1
-              },
-              data: []
-            }
-          }
-          return ''
         }
 
         if (format === 'json') {
-          return {
-            meta: {
-              count: r[0].meta[0]?.count || 0,
-              offset,
-              limit: limit || -1
-            },
-            data: r[0].data
-          }
+          return out
         }
 
-        return r[0].data
+        return out.data
           .map(
-            (d) =>
-              `${d.japanese.map((ja) => ja.value).join(' ')} ${d.meaning
-                .map((m) => m.gloss)
-                .join(' / ')}`
+            (d) => `${d.ja.join(' ')} - ${d.en.map((m) => m.gloss).join(' / ')}`
           )
           .join('\n')
       }
