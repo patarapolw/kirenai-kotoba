@@ -1,11 +1,7 @@
 import fs from 'fs'
 
-import {
-  DictElementModel,
-  DictModel,
-  IDictMeaning,
-  mongooseConnect
-} from '@/db/mongo'
+import { DictElementModel, DictModel, mongooseConnect } from '@/db/mongo'
+import { IDictMeaning } from '@/db/types'
 import axios from 'axios'
 import cheerio from 'cheerio'
 import flow, { toXml } from 'xml-flow'

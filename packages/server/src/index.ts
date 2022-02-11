@@ -5,9 +5,12 @@ import fasitfyStatic from 'fastify-static'
 import S from 'jsonschema-definer'
 import pov from 'point-of-view'
 
-import { DictElementModel, IDictMeaning } from './db/mongo'
+import { DictElement, initDB } from './db/loki'
+import { reKana } from './db/types'
 
 async function main() {
+  await initDB()
+
   const PORT = process.env['PORT'] || 8080
   const isDev = process.env['NODE_ENV'] === 'development'
 
@@ -53,8 +56,6 @@ async function main() {
       })
     )
 
-    const reJa = /[\p{sc=Han}\p{sc=Katakana}\p{sc=Hiragana}]/gu
-
     app.get<{
       Querystring: typeof sQuery.type
     }>(
@@ -92,7 +93,7 @@ async function main() {
         if (exclude) {
           $and.push({
             value: new RegExp(
-              `[^${Array.from(exclude.matchAll(reJa))
+              `[^${Array.from(exclude.matchAll(reKana))
                 .map((m) => m[0])
                 .join('')}]`
             )
@@ -102,12 +103,14 @@ async function main() {
         if (within) {
           $and.push({
             value: new RegExp(
-              `[${Array.from(within.matchAll(reJa))
+              `[${Array.from(within.matchAll(reKana))
                 .map((m) => m[0])
                 .join('')}]`
             )
           })
         }
+
+        DictElement.find({ kana: { $in:  }})
 
         const r: {
           data: {
