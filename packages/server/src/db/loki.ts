@@ -11,7 +11,7 @@ export let DictElement: Collection<IDictElement>
 
 export async function initDB(
   filename = 'cache/jmdict.loki',
-  source = 'https://github.com/patarapolw/kirenai-kotoba/releases/download/v0.1.0-server/jmdict.loki'
+  source = 'https://github.com/patarapolw/kirenai-kotoba/releases/download/v0.1.1-server/jmdict.loki'
 ) {
   return new Promise<Loki>(async (resolve, reject) => {
     let isNew = !fs.existsSync(filename)
