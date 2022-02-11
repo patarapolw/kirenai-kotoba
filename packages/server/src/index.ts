@@ -1,4 +1,5 @@
 import path from 'path'
+import { URL } from 'url'
 
 import fastify from 'fastify'
 import fasitfyStatic from 'fastify-static'
@@ -77,22 +78,23 @@ async function main() {
       async (req): Promise<typeof sResponse.type> => {
         const {
           length,
-          tag: _tag,
+          tag,
           exclude,
           within,
           repeat,
           small,
           format,
-          offset = 0,
-          limit = 100
+          offset = 0
         } = req.query
 
-        const tags = new Set(_tag.split(' '))
+        let { limit = 100 } = req.query
+
+        const tagSet = new Set(tag.split(' '))
 
         const $and: any[] = [{ length }]
 
-        if (tags.has('common')) {
-          tags.delete('common')
+        if (tagSet.has('common')) {
+          tagSet.delete('common')
           $and.push({ primary: true })
         }
 
@@ -103,7 +105,7 @@ async function main() {
           }
 
           $and.push({
-            kana: {
+            char: {
               $containsNone: chars
             }
           })
@@ -116,7 +118,7 @@ async function main() {
           }
 
           $and.push({
-            kana: {
+            char: {
               $containsAny: chars
             }
           })
@@ -137,7 +139,30 @@ async function main() {
           .simplesort('frequency', { desc: true })
           .data()
 
+        const count = entries.length
+        limit = limit || -1
+
+        const makeURL = (offset: number) => {
+          const u = new URL(
+            req.url,
+            isDev ? 'http://' + req.hostname : 'https://kotoba.polv.cc'
+          )
+          u.searchParams.set('offset', String(offset))
+          return u.href
+        }
+
         const out: typeof sJsonResponse.type = {
+          meta: {
+            count,
+            offset,
+            limit,
+            previous:
+              limit > 0 && offset > limit ? makeURL(offset - limit) : undefined,
+            next:
+              limit > 0 && offset + limit < count
+                ? makeURL(offset + limit)
+                : undefined
+          },
           data: entries
             .slice(offset, limit > 0 ? offset + limit : undefined)
             .map((r) => ({
@@ -145,12 +170,7 @@ async function main() {
                 (el) => el.value
               ),
               en: r.meaning
-            })),
-          meta: {
-            count: entries.length,
-            offset,
-            limit: limit || -1
-          }
+            }))
         }
 
         if (format === 'json') {
