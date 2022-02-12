@@ -57,7 +57,8 @@ async function main() {
       data: S.list(
         S.shape({
           ja: S.list(S.string()),
-          en: S.list(sDictMeaning)
+          en: S.list(sDictMeaning),
+          tag: S.list(S.string()).optional()
         }).additionalProperties(true)
       )
     })
@@ -192,7 +193,8 @@ async function main() {
                 dict: r._id,
                 ...(isCommon ? { primary: true } : {})
               }).map((el) => el.value),
-              en: r.meaning
+              en: r.meaning,
+              tag: r.tag
             }))
         }
 

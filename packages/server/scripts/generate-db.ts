@@ -193,7 +193,7 @@ export async function init() {
   })
 }
 
-export async function modify() {
+export async function addPos() {
   const xmlFlow = flow(fs.createReadStream(jmdictXml))
 
   const posMap: Record<string, string[]> = {}
@@ -235,6 +235,12 @@ export async function modify() {
   })
 }
 
+export async function addModifiedPos() {
+  await initDB()
+
+  console.dir(Dict.find({ tag: { $containsAny: ['vt'] } }), { depth: null })
+}
+
 if (require.main === module) {
-  modify()
+  addModifiedPos()
 }
