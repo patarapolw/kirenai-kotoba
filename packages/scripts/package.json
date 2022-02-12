@@ -7,6 +7,7 @@
     "ts": "ts-node -r tsconfig-paths/register"
   },
   "dependencies": {
+    "@databases/pg": "^5.4.1",
     "axios": "^0.25.0",
     "better-sqlite3": "^7.5.0",
     "cheerio": "^1.0.0-rc.10",

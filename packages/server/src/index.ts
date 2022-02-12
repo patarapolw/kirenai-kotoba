@@ -133,10 +133,8 @@ async function main() {
             chars = expandSmall(chars)
           }
 
-          $and.push({
-            char: {
-              $containsAny: chars
-            }
+          chars.map((c) => {
+            $and.push({ char: { $contains: c } })
           })
         }
 
