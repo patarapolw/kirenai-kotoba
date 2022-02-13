@@ -7,10 +7,11 @@ import flow, { toXml } from 'xml-flow'
 
 export const JMDICT_RAW = './cache/JMdict_e.xml'
 
-async function populate() {
+export async function populate() {
   const db = createConnectionPool({
     bigIntMode: 'number'
   })
+
   const xmlFlow = flow(fs.createReadStream(JMDICT_RAW))
 
   const entries: {
