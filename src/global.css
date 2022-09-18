@@ -30,3 +30,7 @@ body,
   flex-direction: row;
   align-items: center;
 }
+
+.o-modal__content {
+  z-index: 100;
+}

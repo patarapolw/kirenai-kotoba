@@ -1,18 +1,18 @@
-import '@oruga-ui/oruga-next/dist/oruga-full.css'
+import '@oruga-ui/oruga-next/dist/oruga-full.css';
+import './global.css';
+import './plugins/fontawesome';
 
-import './global.css'
-import './plugins/fontawesome'
+import { createApp } from 'vue';
 
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import Oruga from '@oruga-ui/oruga-next'
-import { createApp } from 'vue'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import Oruga from '@oruga-ui/oruga-next';
 
-import App from './App.vue'
+import App from './App.vue';
 
 createApp(App)
   .use(Oruga, {
     iconComponent: 'FontAwesomeIcon',
-    iconPack: 'fas'
+    iconPack: 'fas',
   })
   .component('FontAwesomeIcon', FontAwesomeIcon)
-  .mount('#app')
+  .mount('#app');

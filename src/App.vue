@@ -1,37 +1,39 @@
 <script setup lang="ts">
-import Keyboard from './components/Keyboard.vue'
-import SettingsView from './components/SettingsView.vue'
+import { markRaw, ref, watch } from 'vue';
+
+import { guessLimit, quizEnded } from './assets/quiz';
+
+import Keyboard from './components/Keyboard.vue';
+import SettingsView from './components/SettingsView.vue';
 import ResultsView from './components/ResultsView.vue';
-import { markRaw, ref, watch } from 'vue'
-import { guessLimit, quizEnded } from './assets/quiz'
 import TileView from './components/TileView.vue';
 
-const isModalOpen = ref(false)
-const modalName = ref<keyof typeof modalLookup>('SettingsView')
-const modalComponent = ref<any>(null)
+const isModalOpen = ref(false);
+const modalName = ref<keyof typeof modalLookup>('SettingsView');
+const modalComponent = ref<any>(null);
 
 const modalLookup = {
   SettingsView,
-  ResultsView
-}
+  ResultsView,
+};
 
 function changeModal(m: keyof typeof modalLookup) {
-  modalName.value = m
-  modalComponent.value = markRaw(modalLookup[m])
-  isModalOpen.value = true
+  modalName.value = m;
+  modalComponent.value = markRaw(modalLookup[m]);
+  isModalOpen.value = true;
 }
 
 watch(isModalOpen, (v) => {
   if (!v && modalName.value === 'SettingsView') {
-    console.log(guessLimit.value)
+    console.log(guessLimit.value);
   }
-})
+});
 
 watch(quizEnded, (r) => {
   if (r) {
-    changeModal('ResultsView')
+    changeModal('ResultsView');
   }
-})
+});
 </script>
 
 <template>
@@ -40,13 +42,20 @@ watch(quizEnded, (r) => {
       <h1>きれない言葉</h1>
     </div>
     <div style="flex-grow: 1"></div>
-    <o-button icon-left="question" variant="outlined" rounded @click="changeModal('SettingsView')"></o-button>
-    <o-button style="width: 2.5em" variant="outlined" rounded @click="changeModal('ResultsView')">
+    <o-button
+      icon-left="question"
+      variant="outlined"
+      rounded
+      @click="changeModal('SettingsView')"
+    ></o-button>
+    <o-button
+      style="width: 2.5em"
+      variant="outlined"
+      rounded
+      @click="changeModal('ResultsView')"
+    >
       <svg
         class="custom-svg"
-        style="margin-top: 0.2em"
-        width="1.5em"
-        height="1.5em"
         viewBox="0 0 48 48"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -84,14 +93,23 @@ watch(quizEnded, (r) => {
         />
       </svg>
     </o-button>
-    <o-button icon-left="cog" variant="outlined" rounded @click="changeModal('SettingsView')"></o-button>
+    <o-button
+      icon-left="cog"
+      variant="outlined"
+      rounded
+      @click="changeModal('SettingsView')"
+    ></o-button>
   </nav>
   <main>
     <TileView />
     <Keyboard />
   </main>
   <o-modal v-model:active="isModalOpen">
-    <component :is="modalComponent" @submit="isModalOpen = false" @close="isModalOpen = false" />
+    <component
+      :is="modalComponent"
+      @submit="isModalOpen = false"
+      @close="isModalOpen = false"
+    />
   </o-modal>
 </template>
 
@@ -131,5 +149,14 @@ main {
 
 .o-btn:hover .custom-svg {
   filter: brightness(0) invert(1);
+}
+
+.custom-svg {
+  width: 1.5em;
+  height: 1.5em;
+  position: relative;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%);
 }
 </style>
