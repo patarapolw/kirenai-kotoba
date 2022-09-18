@@ -1,191 +1,223 @@
 <script setup lang="ts">
 import { NotificationProgrammatic } from '@oruga-ui/oruga-next';
-import { onMounted, ref, watch, } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue';
 import {
-  isSmallKana, katakanaMode, filter,
-  guessLimit, guessLimitMin, guessLimitDefault,
-  wordLength, wordLengthMin, wordLengthDefault,
-  minWords, minWordsMin, minWordsDefault,
-  rawSource, isRaw, rawSourceDefault
-} from '../assets/quiz'
+  isSmallKana,
+  katakanaMode,
+  filter,
+  guessLimit,
+  guessLimitMin,
+  guessLimitDefault,
+  wordLength,
+  wordLengthMin,
+  wordLengthDefault,
+  minWords,
+  minWordsMin,
+  minWordsDefault,
+  rawSource,
+  isRaw,
+  rawSourceDefault,
+} from '../assets/quiz';
 
-const emit = defineEmits(['submit', 'close'])
+const emit = defineEmits(['submit', 'close']);
 
-const rawTmp = ref('')
-const isRawTmp = ref(false)
-const filterTmp = ref('')
+const rawTmp = ref('');
+const isRawTmp = ref(false);
+const filterTmp = ref('');
+
+const tooltipStatus = reactive({
+  nKana: false,
+  minWords: false,
+  nGuess: false,
+  filter: false,
+});
+
+function tooltipOpen(k: keyof typeof tooltipStatus) {
+  Object.keys(tooltipStatus).map((k) => {
+    (tooltipStatus as any)[k] = false;
+  });
+
+  tooltipStatus[k] = true;
+}
 
 function initRaw() {
-  rawTmp.value = rawSource.value
-  isRawTmp.value = isRaw.value
-  filterTmp.value = filter.value
+  rawTmp.value = rawSource.value;
+  isRawTmp.value = isRaw.value;
+  filterTmp.value = filter.value;
 }
 
 function updateRaw() {
-  rawTmp.value = isRawTmp.value ? '' : rawSourceDefault
-  filterTmp.value = (!isRawTmp.value && rawTmp.value === rawSourceDefault) ? 'N5 or N4 or N3' : ''
+  rawTmp.value = isRawTmp.value ? '' : rawSourceDefault;
+  filterTmp.value =
+    !isRawTmp.value && rawTmp.value === rawSourceDefault
+      ? 'N5 or N4 or N3'
+      : '';
 }
 
 async function setRaw(): Promise<string> {
-  rawSource.value = rawTmp.value
-  isRaw.value = isRawTmp.value
-  filter.value = filterTmp.value
+  rawSource.value = rawTmp.value;
+  isRaw.value = isRawTmp.value;
+  filter.value = filterTmp.value;
 
-  return ''
+  return '';
 }
 
 watch(isRaw, () => {
-  updateRaw()
-})
+  updateRaw();
+});
 
-const wordLengthText = ref(wordLength.value.toString())
-const wordLengthErrorMessage = ref('')
-const wordLengthErrorMessageDefault = `Please enter a number of at least ${wordLengthMin}.`
-const wordLengthTmp = ref(wordLength.value)
+const wordLengthText = ref(wordLength.value.toString());
+const wordLengthErrorMessage = ref('');
+const wordLengthErrorMessageDefault = `Please enter a number of at least ${wordLengthMin}.`;
+const wordLengthTmp = ref(wordLength.value);
 
 function initWordLength() {
-  wordLengthText.value = wordLength.value.toString()
-  wordLengthErrorMessage.value = ''
-  wordLengthTmp.value = wordLength.value
+  wordLengthText.value = wordLength.value.toString();
+  wordLengthErrorMessage.value = '';
+  wordLengthTmp.value = wordLength.value;
 }
 
 function updateWordLength() {
-  wordLengthErrorMessage.value = ''
+  wordLengthErrorMessage.value = '';
 
   if (!wordLengthText.value) {
-    wordLengthErrorMessage.value = wordLengthErrorMessageDefault
-    return
+    wordLengthErrorMessage.value = wordLengthErrorMessageDefault;
+    return;
   }
 
   if (!/^\d{1,2}$/.test(wordLengthText.value)) {
-    wordLengthErrorMessage.value = wordLengthErrorMessageDefault
-    return
+    wordLengthErrorMessage.value = wordLengthErrorMessageDefault;
+    return;
   }
 
-  const n = Number(wordLengthText.value)
+  const n = Number(wordLengthText.value);
   if (n < wordLengthMin) {
-    wordLengthErrorMessage.value = wordLengthErrorMessageDefault
-    return
+    wordLengthErrorMessage.value = wordLengthErrorMessageDefault;
+    return;
   }
 
-  wordLengthTmp.value = n
+  wordLengthTmp.value = n;
 }
 
 function setWordLength() {
-  wordLength.value = wordLengthTmp.value
+  wordLength.value = wordLengthTmp.value;
 }
 
 watch(wordLengthText, () => {
-  updateWordLength()
-})
+  updateWordLength();
+});
 
-const minWordsText = ref(minWords.value.toString())
-const minWordsErrorMessage = ref('')
-const minWordsErrorMessageDefault = `Please enter a number of at least ${minWordsMin}.`
-const minWordsTmp = ref(minWords.value)
+const minWordsText = ref(minWords.value.toString());
+const minWordsErrorMessage = ref('');
+const minWordsErrorMessageDefault = `Please enter a number of at least ${minWordsMin}.`;
+const minWordsTmp = ref(minWords.value);
 
 function initMinWords() {
-  minWordsText.value = minWords.value.toString()
-  minWordsErrorMessage.value = ''
-  minWordsTmp.value = minWords.value
+  minWordsText.value = minWords.value.toString();
+  minWordsErrorMessage.value = '';
+  minWordsTmp.value = minWords.value;
 }
 
 function updateMinWords() {
-  minWordsErrorMessage.value = ''
+  minWordsErrorMessage.value = '';
 
   if (!minWordsText.value) {
-    minWordsErrorMessage.value = minWordsErrorMessageDefault
-    return
+    minWordsErrorMessage.value = minWordsErrorMessageDefault;
+    return;
   }
 
   if (!/^\d+$/.test(minWordsText.value)) {
-    minWordsErrorMessage.value = minWordsErrorMessageDefault
-    return
+    minWordsErrorMessage.value = minWordsErrorMessageDefault;
+    return;
   }
 
-  const n = Number(minWordsText.value)
+  const n = Number(minWordsText.value);
   if (n < minWordsMin) {
-    minWordsErrorMessage.value = minWordsErrorMessageDefault
-    return
+    minWordsErrorMessage.value = minWordsErrorMessageDefault;
+    return;
   }
 
-  minWordsTmp.value = n
+  minWordsTmp.value = n;
 }
 
 function setMinWords() {
-  minWords.value = minWordsTmp.value
+  minWords.value = minWordsTmp.value;
 }
 
 watch(minWordsText, () => {
-  updateMinWords()
-})
+  updateMinWords();
+});
 
-const guessLimitText = ref((guessLimit.value || '').toString())
-const guessLimitErrorMessage = ref('')
-const guessLimitErrorMessageDefault = `Please enter a number of at least ${guessLimitMin}.`
-const guessLimitTmp = ref(guessLimit.value)
+const guessLimitText = ref((guessLimit.value || '').toString());
+const guessLimitErrorMessage = ref('');
+const guessLimitErrorMessageDefault = `Please enter a number of at least ${guessLimitMin}.`;
+const guessLimitTmp = ref(guessLimit.value);
 
 function initGuessLimit() {
-  guessLimitText.value = (guessLimit.value || '').toString()
-  guessLimitTmp.value = guessLimit.value
+  guessLimitText.value = (guessLimit.value || '').toString();
+  guessLimitTmp.value = guessLimit.value;
 }
 
 function updateGuessLimit() {
-  guessLimitErrorMessage.value = ''
+  guessLimitErrorMessage.value = '';
 
   if (!guessLimitText.value) {
-    guessLimit.value = 0
-    return
+    guessLimit.value = 0;
+    return;
   }
 
   if (!/^\d{1,2}$/.test(guessLimitText.value)) {
-    guessLimitErrorMessage.value = guessLimitErrorMessageDefault
-    return
+    guessLimitErrorMessage.value = guessLimitErrorMessageDefault;
+    return;
   }
 
-  const n = Number(guessLimitText.value)
+  const n = Number(guessLimitText.value);
   if (n < guessLimitMin) {
-    guessLimitErrorMessage.value = guessLimitErrorMessageDefault
-    return
+    guessLimitErrorMessage.value = guessLimitErrorMessageDefault;
+    return;
   }
 
-  guessLimitTmp.value = n
+  guessLimitTmp.value = n;
 }
 
 function setGuessLimit() {
-  guessLimit.value = guessLimitTmp.value
+  guessLimit.value = guessLimitTmp.value;
 }
 
 watch(guessLimitText, () => {
-  updateGuessLimit()
-})
+  updateGuessLimit();
+});
 
 async function doSubmit() {
-  const errorMessage = wordLengthErrorMessage.value || minWordsErrorMessage.value || guessLimitErrorMessage.value || (await setRaw())
+  const errorMessage =
+    wordLengthErrorMessage.value ||
+    minWordsErrorMessage.value ||
+    guessLimitErrorMessage.value ||
+    (await setRaw());
 
   if (errorMessage) {
     NotificationProgrammatic.open({
       message: errorMessage,
       rootClass: 'toast-notification',
       position: 'top',
-      duration: 4000
-    })
-    return
+      duration: 4000,
+    });
+    return;
   }
 
-  setWordLength()
-  setMinWords()
-  setGuessLimit()
+  setWordLength();
+  setMinWords();
+  setGuessLimit();
 
-  emit('submit')
+  emit('submit');
 }
 
 onMounted(() => {
-  initRaw()
-  initGuessLimit()
-  initMinWords()
-  initWordLength()
-})
+  initRaw();
+  initGuessLimit();
+  initMinWords();
+  initWordLength();
+});
 </script>
 
 <template>
@@ -205,6 +237,8 @@ onMounted(() => {
           <o-tooltip
             append-to-body
             multiline
+            v-model:active="tooltipStatus.nKana"
+            @open="tooltipOpen('nKana')"
             :auto-close="['inside']"
             label="Number of Kana in guessed words"
           >
@@ -221,7 +255,11 @@ onMounted(() => {
         <o-button
           icon-right="undo-alt"
           @click="wordLengthText = wordLengthDefault.toString()"
-          :variant="wordLengthText === wordLengthDefault.toString() ? 'disabled' : 'warning'"
+          :variant="
+            wordLengthText === wordLengthDefault.toString()
+              ? 'disabled'
+              : 'warning'
+          "
         ></o-button>
       </o-field>
       <o-field>
@@ -230,25 +268,40 @@ onMounted(() => {
           <o-tooltip
             append-to-body
             multiline
+            v-model:active="tooltipStatus.minWords"
+            @open="tooltipOpen('minWords')"
             :auto-close="['inside']"
             label="Minimum number of words in list, for the specified word length to work"
           >
             <o-icon size="small" icon="question-circle"></o-icon>
           </o-tooltip>
         </template>
-        <o-input v-model="minWordsText" type="number" pattern="[0-9]+" :min="minWordsMin" expanded></o-input>
+        <o-input
+          v-model="minWordsText"
+          type="number"
+          pattern="[0-9]+"
+          :min="minWordsMin"
+          expanded
+        ></o-input>
         <o-button
           icon-right="undo-alt"
           @click="minWordsText = minWordsDefault.toString()"
-          :variant="minWordsText === minWordsDefault.toString() ? 'disabled' : 'warning'"
+          :variant="
+            minWordsText === minWordsDefault.toString() ? 'disabled' : 'warning'
+          "
         ></o-button>
       </o-field>
-      <o-field :variant="guessLimitErrorMessage ? 'danger' : ''" :message="guessLimitErrorMessage">
+      <o-field
+        :variant="guessLimitErrorMessage ? 'danger' : ''"
+        :message="guessLimitErrorMessage"
+      >
         <template v-slot:label>
           Guess limit
           <o-tooltip
             append-to-body
             multiline
+            v-model:active="tooltipStatus.nGuess"
+            @open="tooltipOpen('nGuess')"
             :auto-close="['inside']"
             label="Number of times you can guess. Leave it empty for unlimited tries."
           >
@@ -265,7 +318,11 @@ onMounted(() => {
         <o-button
           icon-right="undo-alt"
           @click="guessLimitText = guessLimitDefault.toString()"
-          :variant="guessLimitText === guessLimitDefault.toString() ? 'disabled' : 'warning'"
+          :variant="
+            guessLimitText === guessLimitDefault.toString()
+              ? 'disabled'
+              : 'warning'
+          "
         ></o-button>
       </o-field>
     </section>
@@ -280,7 +337,8 @@ onMounted(() => {
             :href="rawSourceDefault"
             target="_blank"
             rel="noopener noreferrer"
-          >{{ rawSourceDefault }}</a>
+            >{{ rawSourceDefault }}</a
+          >
           for the format)
         </o-switch>
       </o-field>
@@ -294,7 +352,10 @@ onMounted(() => {
         ></o-input>
         <o-button
           icon-right="undo-alt"
-          @click="isRaw = false; rawTmp = rawSourceDefault"
+          @click="
+            isRaw = false;
+            rawTmp = rawSourceDefault;
+          "
           :variant="rawTmp === rawSource ? 'disabled' : 'warning'"
         ></o-button>
       </o-field>
@@ -304,6 +365,8 @@ onMounted(() => {
           <o-tooltip
             append-to-body
             multiline
+            v-model:active="tooltipStatus.filter"
+            @open="tooltipOpen('filter')"
             :auto-close="['inside']"
             label="Filter down vocabulary list, powered by SQLite FTS5"
           >

@@ -13,6 +13,9 @@ createApp(App)
   .use(Oruga, {
     iconComponent: 'FontAwesomeIcon',
     iconPack: 'fas',
+    tooltip: {
+      triggers: ['hover'],
+    },
   })
   .component('FontAwesomeIcon', FontAwesomeIcon)
   .mount('#app');

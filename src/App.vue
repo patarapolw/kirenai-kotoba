@@ -43,12 +43,6 @@ watch(quizEnded, (r) => {
     </div>
     <div style="flex-grow: 1"></div>
     <o-button
-      icon-left="question"
-      variant="outlined"
-      rounded
-      @click="changeModal('SettingsView')"
-    ></o-button>
-    <o-button
       style="width: 2.5em"
       variant="outlined"
       rounded
